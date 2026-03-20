@@ -1,0 +1,117 @@
+import { Request, Response } from "express";
+import {
+  deleteBorrower,
+  getAllBorrowers,
+  updateBorrower,
+} from "../db/queries/borrowers.js";
+import { BadRequestError, NotFoundError } from "./errors.js";
+import { createBorrower } from "../db/queries/borrowers.js";
+import { validate as isValidUUID } from "uuid";
+import isEmail from "validator/lib/isEmail.js";
+
+// Handler to create a new borrower
+export async function handlerBorrowersCreate(req: Request, res: Response) {
+  const { name, email } = req.body;
+
+  // Validate required fields
+  if (!name || !email) {
+    throw new BadRequestError("Missing required fields: name and email");
+  }
+
+  if (typeof name !== "string" || typeof email !== "string") {
+    throw new BadRequestError(
+      "Invalid request body: name and email must be strings",
+    );
+  }
+
+  // Validate email format
+  if (!isEmail(email)) {
+    throw new BadRequestError("Invalid email format");
+  }
+
+  // Create the borrower
+  const borrower = await createBorrower({ name, email });
+
+  // Return success response
+  res.status(201).json({
+    success: true,
+    data: borrower,
+  });
+}
+
+// Handler to list all borrowers
+export async function handlerBorrowersList(req: Request, res: Response) {
+  const allBorrowers = await getAllBorrowers();
+
+  res.status(200).json({
+    success: true,
+    count: allBorrowers.length,
+    data: allBorrowers,
+  });
+}
+export async function handlerBorrowersUpdate(req: Request, res: Response) {
+  const RawborrowerId = req.params.id;
+  const borrowerId = Array.isArray(RawborrowerId)
+    ? RawborrowerId[0]
+    : RawborrowerId;
+
+  // Validate UUID
+  if (!isValidUUID(borrowerId)) {
+    throw new BadRequestError("Invalid borrower ID format");
+  }
+
+  const updateData = req.body;
+
+  // Prevent empty updates
+  if (Object.keys(updateData).length === 0) {
+    throw new BadRequestError("Please provide at least one field to update.");
+  }
+
+  // Validate email if it's being updated
+  if (updateData.email && !isEmail(updateData.email)) {
+    throw new BadRequestError("Invalid email format.");
+    return;
+  }
+
+  // Perform the update
+  const updatedBorrower = await updateBorrower(borrowerId, updateData);
+
+  if (!updatedBorrower) {
+    throw new NotFoundError("Borrower not found");
+  }
+
+  res.status(200).json({
+    success: true,
+    data: updatedBorrower,
+  });
+}
+
+// Handler to delete a borrower
+export async function handlerBorrowersDelete(req: Request, res: Response) {
+  const RawborrowerId = req.params.id;
+  const borrowerId = Array.isArray(RawborrowerId)
+    ? RawborrowerId[0]
+    : RawborrowerId;
+
+  // Validate the UUID format
+  if (!isValidUUID(borrowerId)) {
+    res
+      .status(400)
+      .json({ success: false, error: "Invalid borrower ID format." });
+    return;
+  }
+
+  // Perform the deletion
+  const deletedBorrower = await deleteBorrower(borrowerId);
+
+  if (!deletedBorrower) {
+    res.status(404).json({ success: false, error: "Borrower not found." });
+    return;
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Borrower successfully deleted.",
+    data: deletedBorrower,
+  });
+}
