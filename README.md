@@ -49,7 +49,7 @@ The application will be accessible at `http://localhost:8080`.
 
 ### ERD Diagram
 
-*(Please insert your Database Schema Diagram here)*
+![Schema Diagram](./Schema.png)
 
 ### Schema Details
 
