@@ -21,8 +21,14 @@ Follow these instructions to set up the project locally.
    ```
 
 2. **Database Configuration**
-   Create a `.env` file in the root of your project and configure your environment variables:
+   This application requires a running PostgreSQL instance. Please follow these steps:
+   
+   - Ensure you have **PostgreSQL** installed and running on your machine.
+   - Create a new, empty database named `library_db` (or a name of your choice). You can do this via your SQL client or terminal: `createdb library_db`.
+   
+   Next, create a `.env` file in the root of your project and configure your environment variables to point to your new database:
    ```env
+   # Replace 'username' and 'password' with your local PostgreSQL credentials
    DB_URL="postgres://username:password@localhost:5432/library_db?sslmode=disable"
    PORT=8080
    ```
@@ -49,7 +55,7 @@ The application will be accessible at `http://localhost:8080`.
 
 ### ERD Diagram
 
-*(Please insert your Database Schema Diagram here)*
+![Schema Diagram](./Schema.png)
 
 ### Schema Details
 
