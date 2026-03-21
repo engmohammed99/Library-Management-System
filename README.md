@@ -23,7 +23,6 @@ The fastest way to run the application and database together is using Docker Com
    ```bash
    docker compose up --build -d
    ```
-   _Note: Use `docker compose` (with a space) on newer Docker Desktop installations, or `docker-compose` (with a hyphen) on older ones._
 
 The API will be instantly available at `http://localhost:8080`, and a dedicated PostgreSQL database will be running in the background automatically mapped to port 5432!
 
@@ -240,7 +239,6 @@ The database is built using PostgreSQL and interacts via Drizzle ORM. Below is a
 
 ### **📊 Analytics & CSV Reports Endpoints**
 
-_Note: The CSV Export endpoint (`/api/reports/borrowings/export`) is strictly rate-limited to 3 requests per minute to prevent database overload._
 
 #### 1. Get Borrowing Analytics (JSON)
 
@@ -270,8 +268,8 @@ _Note: The CSV Export endpoint (`/api/reports/borrowings/export`) is strictly ra
 - **Rate Limiting**: To prevent abuse, Native In-Memory Rate Limiters are active:
   - Account Creation (`POST /api/borrowers`): 5 per 15 minutes.
   - Checkout (`POST /api/borrowings/checkout`): 10 per minute.
-  - Analytics Exports (`GET /api/reports/borrowings/export`): 3 per minute.
-- **Mass Assignment Protection**: Update endpoints strictly whitelist incoming fields to prevent unauthorized injection of protected columns (like IPs, or `createdAt` dates).
+  
+
 
 ---
 
