@@ -7,6 +7,8 @@ import {
   middlewareLogResponse,
   errorMiddleWare,
   validateUUIDs,
+  createBorrowerLimiter,
+  checkoutLimiter,
 } from "./api/middleware.js";
 import { config } from "./config.js";
 import {
@@ -29,6 +31,12 @@ import {
   handlerListBorrowedBooks,
   handlerListOverdueBooks,
 } from "./api/borrowings.js";
+import {
+  handlerBorrowingAnalytics,
+  handlerExportBorrowingsCSV,
+  handlerExportLastMonth,
+  handlerExportOverdueLastMonth,
+} from "./api/reports.js";
 
 const migrationClient = postgres(config.db.url, { max: 1 });
 await migrate(drizzle(migrationClient), config.db.migrationConfig);
@@ -74,7 +82,7 @@ app.get("/api/borrowers/:id", (req, res, next) => {
   Promise.resolve(handlerBorrowersGet(req, res)).catch(next);
 });
 // Create a new borrower
-app.post("/api/borrowers", (req, res, next) => {
+app.post("/api/borrowers", createBorrowerLimiter, (req, res, next) => {
   Promise.resolve(handlerBorrowersCreate(req, res)).catch(next);
 });
 
@@ -92,6 +100,7 @@ app.delete("/api/borrowers/:id", (req, res, next) => {
 app.post(
   "/api/borrowings/checkout",
   validateUUIDs(["bookId", "borrowerId"]),
+  checkoutLimiter,
   (req, res, next) => {
     Promise.resolve(handlerCheckoutBook(req, res)).catch(next);
   },
@@ -114,6 +123,27 @@ app.get("/api/borrowers/:id/borrowed-books", (req, res, next) => {
 app.get("/api/borrowings/overdue", (req, res, next) => {
   Promise.resolve(handlerListOverdueBooks(req, res)).catch(next);
 });
+
+// Analytics Report Endpoint
+app.get("/api/reports/borrowings", (req, res, next) => {
+  Promise.resolve(handlerBorrowingAnalytics(req, res)).catch(next);
+});
+
+// CSV Export Download Endpoint
+app.get("/api/reports/borrowings/export", (req, res, next) => {
+  Promise.resolve(handlerExportBorrowingsCSV(req, res)).catch(next);
+});
+
+// CSV Export Last Month
+app.get("/api/reports/borrowings/last-month", (req, res, next) => {
+  Promise.resolve(handlerExportLastMonth(req, res)).catch(next);
+});
+
+// CSV Export Overdue Last Month
+app.get("/api/reports/borrowings/overdue/last-month", (req, res, next) => {
+  Promise.resolve(handlerExportOverdueLastMonth(req, res)).catch(next);
+});
+
 // Error handling middleware
 app.use(errorMiddleWare);
 

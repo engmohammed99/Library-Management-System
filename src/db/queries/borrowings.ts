@@ -1,4 +1,4 @@
-import { eq, and, isNull, lt } from "drizzle-orm";
+import { eq, and, isNull, lt, gte, lte } from "drizzle-orm";
 import { db } from "../index.js";
 import { books, borrowers, borrowingRecords } from "../schema.js";
 
@@ -108,7 +108,7 @@ export async function returnBook(bookId: string, borrowerId: string) {
 }
 
 export async function getActiveBorrowsForUser(borrowerId: string) {
-  //Check if the borrower exists
+  // 1. Check if the borrower exists first
   const borrowerList = await db
     .select()
     .from(borrowers)
@@ -118,7 +118,7 @@ export async function getActiveBorrowsForUser(borrowerId: string) {
     throw new Error(BorrowingErrors.BORROWER_NOT_FOUND);
   }
 
-  // Fetch the active borrows
+  // 2. Fetch the active borrows
   return await db
     .select({
       borrowingId: borrowingRecords.id,
@@ -166,6 +166,38 @@ export async function getOverdueBooks() {
       and(
         isNull(borrowingRecords.returnDate),
         lt(borrowingRecords.dueDate, now),
+      ),
+    );
+}
+
+export async function getBorrowingAnalytics(
+  startDateStr: string,
+  endDateStr: string,
+) {
+  const startDate = new Date(startDateStr);
+  const endDate = new Date(endDateStr);
+
+  // Ensure we include the entire end day
+  endDate.setHours(23, 59, 59, 999);
+
+  return await db
+    .select({
+      borrowingId: borrowingRecords.id,
+      bookTitle: books.title,
+      bookIsbn: books.isbn,
+      borrowerName: borrowers.name,
+      borrowerEmail: borrowers.email,
+      checkoutDate: borrowingRecords.checkoutDate,
+      dueDate: borrowingRecords.dueDate,
+      returnDate: borrowingRecords.returnDate,
+    })
+    .from(borrowingRecords)
+    .innerJoin(books, eq(borrowingRecords.bookId, books.id))
+    .innerJoin(borrowers, eq(borrowingRecords.borrowerId, borrowers.id))
+    .where(
+      and(
+        gte(borrowingRecords.checkoutDate, startDate),
+        lte(borrowingRecords.checkoutDate, endDate),
       ),
     );
 }

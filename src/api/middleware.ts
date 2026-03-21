@@ -9,6 +9,7 @@ import {
   UserForbiddenError,
   UserNotAuthenticatedError,
 } from "./errors.js";
+import rateLimit from "express-rate-limit";
 
 export function middlewareLogResponse(
   req: Request,
@@ -69,3 +70,29 @@ export function validateUUIDs(fields: string[]) {
     next();
   };
 }
+
+// Limiter for creating borrowers
+export const createBorrowerLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes in milliseconds
+  max: 5,
+  message: {
+    success: false,
+    error:
+      "Too many accounts created from this IP. Please try again after 15 minutes.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Limiter for checking out books
+export const checkoutLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute in milliseconds
+  max: 10,
+  message: {
+    success: false,
+    error:
+      "Too many checkout requests. Please slow down and try again in a minute.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
