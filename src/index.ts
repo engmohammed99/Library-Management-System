@@ -3,7 +3,11 @@ import postgres from "postgres";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { handlerReadiness } from "./api/readiness.js";
-import { middlewareLogResponse, errorMiddleWare } from "./api/middleware.js";
+import {
+  middlewareLogResponse,
+  errorMiddleWare,
+  validateUUIDs,
+} from "./api/middleware.js";
 import { config } from "./config.js";
 import {
   handlerCreateBook,
@@ -15,6 +19,7 @@ import {
 import {
   handlerBorrowersCreate,
   handlerBorrowersDelete,
+  handlerBorrowersGet,
   handlerBorrowersList,
   handlerBorrowersUpdate,
 } from "./api/borrowers.js";
@@ -23,7 +28,7 @@ import {
   handlerReturnBook,
   handlerListBorrowedBooks,
   handlerListOverdueBooks,
-} from "./api/borrowingService.js";
+} from "./api/borrowings.js";
 
 const migrationClient = postgres(config.db.url, { max: 1 });
 await migrate(drizzle(migrationClient), config.db.migrationConfig);
@@ -64,6 +69,10 @@ app.delete("/api/books/:id", (req, res, next) => {
 app.get("/api/borrowers", (req, res, next) => {
   Promise.resolve(handlerBorrowersList(req, res)).catch(next);
 });
+// Get a single borrower
+app.get("/api/borrowers/:id", (req, res, next) => {
+  Promise.resolve(handlerBorrowersGet(req, res)).catch(next);
+});
 // Create a new borrower
 app.post("/api/borrowers", (req, res, next) => {
   Promise.resolve(handlerBorrowersCreate(req, res)).catch(next);
@@ -80,14 +89,22 @@ app.delete("/api/borrowers/:id", (req, res, next) => {
 });
 
 // Checkout a book
-app.post("/api/borrowings/checkout", (req, res, next) => {
-  Promise.resolve(handlerCheckoutBook(req, res)).catch(next);
-});
+app.post(
+  "/api/borrowings/checkout",
+  validateUUIDs(["bookId", "borrowerId"]),
+  (req, res, next) => {
+    Promise.resolve(handlerCheckoutBook(req, res)).catch(next);
+  },
+);
 
 // Return a book
-app.post("/api/borrowings/return", (req, res, next) => {
-  Promise.resolve(handlerReturnBook(req, res)).catch(next);
-});
+app.post(
+  "/api/borrowings/return",
+  validateUUIDs(["bookId", "borrowerId"]),
+  (req, res, next) => {
+    Promise.resolve(handlerReturnBook(req, res)).catch(next);
+  },
+);
 
 // List borrowed books for a user
 app.get("/api/borrowers/:id/borrowed-books", (req, res, next) => {

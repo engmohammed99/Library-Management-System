@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
+import { validate as isValidUUID } from "uuid";
 
 import { respondWithError } from "./json.js";
 
@@ -32,7 +33,9 @@ export function errorMiddleWare(
   __: NextFunction,
 ) {
   let statusCode = 500;
-  let message = "Something went wrong on our end";
+  let message =
+    `[DEBUG] Name: ${err.name}, Message: ${err.message}` ||
+    "Something went wrong on our end";
 
   if (err instanceof BadRequestError) {
     statusCode = 400;
@@ -53,4 +56,16 @@ export function errorMiddleWare(
   }
 
   respondWithError(res, statusCode, message);
+}
+
+export function validateUUIDs(fields: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    for (const field of fields) {
+      const value = req.body[field] || req.params[field];
+      if (value && !isValidUUID(value)) {
+        return next(new BadRequestError(`Invalid ${field} format.`));
+      }
+    }
+    next();
+  };
 }

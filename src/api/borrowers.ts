@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import {
   deleteBorrower,
   getAllBorrowers,
+  getBorrowerById,
   updateBorrower,
 } from "../db/queries/borrowers.js";
 import { BadRequestError, NotFoundError } from "./errors.js";
@@ -32,6 +33,10 @@ export async function handlerBorrowersCreate(req: Request, res: Response) {
   // Create the borrower
   const borrower = await createBorrower({ name, email });
 
+  if (!borrower) {
+    throw new BadRequestError("A borrower with this email already exists.");
+  }
+
   // Return success response
   res.status(201).json({
     success: true,
@@ -49,6 +54,27 @@ export async function handlerBorrowersList(req: Request, res: Response) {
     data: allBorrowers,
   });
 }
+
+// Handler to get a single borrower by ID
+export async function handlerBorrowersGet(req: Request, res: Response) {
+  const borrowerId = req.params.id as string;
+
+  if (!isValidUUID(borrowerId)) {
+    throw new BadRequestError("Invalid borrower ID format");
+  }
+
+  const borrower = await getBorrowerById(borrowerId);
+
+  if (!borrower) {
+    throw new NotFoundError("Borrower not found");
+  }
+
+  res.status(200).json({
+    success: true,
+    data: borrower,
+  });
+}
+
 export async function handlerBorrowersUpdate(req: Request, res: Response) {
   const RawborrowerId = req.params.id;
   const borrowerId = Array.isArray(RawborrowerId)
@@ -95,18 +121,14 @@ export async function handlerBorrowersDelete(req: Request, res: Response) {
 
   // Validate the UUID format
   if (!isValidUUID(borrowerId)) {
-    res
-      .status(400)
-      .json({ success: false, error: "Invalid borrower ID format." });
-    return;
+    throw new BadRequestError("Invalid borrower ID format.");
   }
 
   // Perform the deletion
   const deletedBorrower = await deleteBorrower(borrowerId);
 
   if (!deletedBorrower) {
-    res.status(404).json({ success: false, error: "Borrower not found." });
-    return;
+    throw new NotFoundError("Borrower not found.");
   }
 
   res.status(200).json({

@@ -2,18 +2,25 @@ import { eq, and, isNull, lt } from "drizzle-orm";
 import { db } from "../index.js";
 import { books, borrowers, borrowingRecords } from "../schema.js";
 
+export const BorrowingErrors = {
+  BOOK_NOT_FOUND: "BOOK_NOT_FOUND",
+  BOOK_OUT_OF_STOCK: "BOOK_OUT_OF_STOCK",
+  BORROWER_NOT_FOUND: "BORROWER_NOT_FOUND",
+  NO_ACTIVE_BORROWING: "NO_ACTIVE_BORROWING",
+};
+
 export async function checkoutBook(bookId: string, borrowerId: string) {
   // Start the database transaction
   return await db.transaction(async (tx) => {
     // Check if the book exists and has available inventory
     const bookList = await tx.select().from(books).where(eq(books.id, bookId));
     if (bookList.length === 0) {
-      throw new Error("BOOK_NOT_FOUND");
+      throw new Error(BorrowingErrors.BOOK_NOT_FOUND);
     }
 
     const book = bookList[0];
     if (book.availableQuantity <= 0) {
-      throw new Error("BOOK_OUT_OF_STOCK");
+      throw new Error(BorrowingErrors.BOOK_OUT_OF_STOCK);
     }
 
     // Check if the borrower exists
@@ -22,7 +29,7 @@ export async function checkoutBook(bookId: string, borrowerId: string) {
       .from(borrowers)
       .where(eq(borrowers.id, borrowerId));
     if (borrowerList.length === 0) {
-      throw new Error("BORROWER_NOT_FOUND");
+      throw new Error(BorrowingErrors.BORROWER_NOT_FOUND);
     }
 
     // Decrease the book's available quantity by 1
@@ -52,6 +59,15 @@ export async function checkoutBook(bookId: string, borrowerId: string) {
 
 export async function returnBook(bookId: string, borrowerId: string) {
   return await db.transaction(async (tx) => {
+    // Check if the borrower exists first
+    const borrowerList = await tx
+      .select()
+      .from(borrowers)
+      .where(eq(borrowers.id, borrowerId));
+    if (borrowerList.length === 0) {
+      throw new Error(BorrowingErrors.BORROWER_NOT_FOUND);
+    }
+
     // Find the active borrowing record
     const activeRecords = await tx
       .select()
@@ -65,7 +81,7 @@ export async function returnBook(bookId: string, borrowerId: string) {
       );
 
     if (activeRecords.length === 0) {
-      throw new Error("NO_ACTIVE_BORROWING");
+      throw new Error(BorrowingErrors.NO_ACTIVE_BORROWING);
     }
 
     const activeRecord = activeRecords[0];
@@ -92,6 +108,17 @@ export async function returnBook(bookId: string, borrowerId: string) {
 }
 
 export async function getActiveBorrowsForUser(borrowerId: string) {
+  //Check if the borrower exists
+  const borrowerList = await db
+    .select()
+    .from(borrowers)
+    .where(eq(borrowers.id, borrowerId));
+
+  if (borrowerList.length === 0) {
+    throw new Error(BorrowingErrors.BORROWER_NOT_FOUND);
+  }
+
+  // Fetch the active borrows
   return await db
     .select({
       borrowingId: borrowingRecords.id,

@@ -7,12 +7,22 @@ export async function createBorrower(borrowerData: NewBorrower) {
   const [newBorrower] = await db
     .insert(borrowers)
     .values(borrowerData)
+    .onConflictDoNothing()
     .returning();
 
   return newBorrower;
 }
 export async function getAllBorrowers() {
   return await db.select().from(borrowers);
+}
+
+// Get a single borrower by ID
+export async function getBorrowerById(id: string) {
+  const rows = await db.select().from(borrowers).where(eq(borrowers.id, id));
+  if (rows.length === 0) {
+    return null;
+  }
+  return rows[0];
 }
 
 // Update a borrower by ID

@@ -42,7 +42,7 @@ export async function handlerCreateBook(req: Request, res: Response) {
   });
 
   if (!book) {
-    throw new Error("Could not create book");
+    throw new BadRequestError("Could not create book");
   }
 
   // Return the newly created resource
