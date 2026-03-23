@@ -7,10 +7,12 @@ import {
   BorrowingErrors,
 } from "../db/queries/borrowings.js";
 import { BadRequestError, NotFoundError } from "./errors.js";
-
+import { getBearerToken, validateJWT } from "../auth.js";
+import { config } from "../config.js";
 export async function handlerCheckoutBook(req: Request, res: Response) {
-  const { bookId, borrowerId } = req.body;
-
+  const { bookId } = req.body;
+  const token = getBearerToken(req);
+  const borrowerId = validateJWT(token, config.jwt.secret);
   if (!bookId || !borrowerId) {
     throw new BadRequestError("Missing bookId or borrowerId.");
   }

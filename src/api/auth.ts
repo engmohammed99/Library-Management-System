@@ -1,15 +1,21 @@
 import { getBorrowerByEmail } from "../db/queries/borrowers.js";
-import { checkPasswordHash } from "../auth.js";
+import { checkPasswordHash, makeJWT } from "../auth.js";
 import { respondWithJSON } from "./json.js";
 import { UserNotAuthenticatedError } from "./errors.js";
 
 import type { Request, Response } from "express";
 import type { BorrowerResponse } from "./borrowers.js";
+import { config } from "../config.js";
+
+type LoginResponse = BorrowerResponse & {
+  token: string;
+};
 
 export async function handlerLogin(req: Request, res: Response) {
   type parameters = {
     password: string;
     email: string;
+    expiresIn?: number;
   };
 
   const params: parameters = req.body;
@@ -27,13 +33,19 @@ export async function handlerLogin(req: Request, res: Response) {
     throw new UserNotAuthenticatedError("incorrect email or password");
   }
 
+  let duration = config.jwt.defaultDuration;
+  if (params.expiresIn && !(params.expiresIn > config.jwt.defaultDuration)) {
+    duration = params.expiresIn;
+  }
+
+  const accessToken = makeJWT(user.id, duration, config.jwt.secret);
+
   respondWithJSON(res, 200, {
-    success: true,
-    data: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      registeredDate: user.registeredDate,
-    } satisfies BorrowerResponse,
-  });
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+    token: accessToken,
+  } satisfies LoginResponse);
 }

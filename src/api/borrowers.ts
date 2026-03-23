@@ -12,8 +12,7 @@ import isEmail from "validator/lib/isEmail.js";
 import { NewBorrower } from "src/db/schema.js";
 import { checkPasswordHash, hashPassword } from "../auth.js";
 import { respondWithJSON } from "./json.js";
-import { getBearerToken, validateJWT } from "../auth.js";
-import { config } from "../config.js";
+
 export type BorrowerResponse = Omit<NewBorrower, "hashedPassword">;
 
 // Handler to create a new borrower
@@ -24,8 +23,7 @@ export async function handlerBorrowersCreate(req: Request, res: Response) {
     password: string;
   };
   const params: parameters = req.body;
-  const token = getBearerToken(req);
-  const borrowerId = validateJWT(token, config.jwt.secret);
+
   // Validate required fields
   if (!params.name || !params.email || !params.password) {
     throw new BadRequestError(
