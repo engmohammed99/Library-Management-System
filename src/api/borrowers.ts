@@ -9,38 +9,64 @@ import { BadRequestError, NotFoundError } from "./errors.js";
 import { createBorrower } from "../db/queries/borrowers.js";
 import { validate as isValidUUID } from "uuid";
 import isEmail from "validator/lib/isEmail.js";
+import { NewBorrower } from "src/db/schema.js";
+import { checkPasswordHash, hashPassword } from "../auth.js";
+import { respondWithJSON } from "./json.js";
+import { getBearerToken, validateJWT } from "../auth.js";
+import { config } from "../config.js";
+export type BorrowerResponse = Omit<NewBorrower, "hashedPassword">;
 
 // Handler to create a new borrower
 export async function handlerBorrowersCreate(req: Request, res: Response) {
-  const { name, email } = req.body;
-
+  type parameters = {
+    name: string;
+    email: string;
+    password: string;
+  };
+  const params: parameters = req.body;
+  const token = getBearerToken(req);
+  const borrowerId = validateJWT(token, config.jwt.secret);
   // Validate required fields
-  if (!name || !email) {
-    throw new BadRequestError("Missing required fields: name and email");
+  if (!params.name || !params.email || !params.password) {
+    throw new BadRequestError(
+      "Missing required fields: name, email, and password",
+    );
   }
 
-  if (typeof name !== "string" || typeof email !== "string") {
+  if (typeof params.name !== "string" || typeof params.email !== "string") {
     throw new BadRequestError(
       "Invalid request body: name and email must be strings",
     );
   }
 
   // Validate email format
-  if (!isEmail(email)) {
+  if (!isEmail(params.email)) {
     throw new BadRequestError("Invalid email format");
   }
 
+  // Hash the password
+  const hashedPassword = await hashPassword(params.password);
+
   // Create the borrower
-  const borrower = await createBorrower({ name, email });
+  const borrower = await createBorrower({
+    name: params.name,
+    email: params.email,
+    hashedPassword,
+  } satisfies NewBorrower);
 
   if (!borrower) {
     throw new BadRequestError("A borrower with this email already exists.");
   }
 
   // Return success response
-  res.status(201).json({
+  respondWithJSON(res, 201, {
     success: true,
-    data: borrower,
+    data: {
+      id: borrower.id,
+      name: borrower.name,
+      email: borrower.email,
+      registeredDate: borrower.registeredDate,
+    } satisfies BorrowerResponse,
   });
 }
 

@@ -1,3 +1,15 @@
+-- Check if the column 'hashed_password' exists before adding it
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'borrowers' AND column_name = 'hashed_password'
+    ) THEN
+        ALTER TABLE borrowers ADD COLUMN hashed_password varchar(256) DEFAULT 'unset' NOT NULL;
+    END IF;
+END $$;
+
 CREATE TABLE "books" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"title" varchar(255) NOT NULL,

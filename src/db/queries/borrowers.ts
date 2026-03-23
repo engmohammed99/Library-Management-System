@@ -61,3 +61,10 @@ export async function deleteBorrower(id: string) {
 
   return rows[0];
 }
+export async function getBorrowerByEmail(email: string) {
+  const [result] = await db
+    .select()
+    .from(borrowers)
+    .where(eq(borrowers.email, email));
+  return result;
+}

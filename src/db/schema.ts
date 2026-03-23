@@ -62,6 +62,9 @@ export const borrowers = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
+    hashedPassword: varchar("hashed_password", { length: 256 })
+      .notNull()
+      .default("unset"),
   },
   (table) => {
     return {

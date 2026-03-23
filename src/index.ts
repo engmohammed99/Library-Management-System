@@ -37,6 +37,7 @@ import {
   handlerExportLastMonth,
   handlerExportOverdueLastMonth,
 } from "./api/reports.js";
+import { handlerLogin } from "./api/auth.js";
 
 const migrationClient = postgres(config.db.url, { max: 1 });
 await migrate(drizzle(migrationClient), config.db.migrationConfig);
@@ -73,6 +74,10 @@ app.patch("/api/books/:id", (req, res, next) => {
 app.delete("/api/books/:id", (req, res, next) => {
   Promise.resolve(handlerDeleteBook(req, res)).catch(next);
 });
+// Login endpoint
+app.post("/api/login", (req, res, next) => {
+  Promise.resolve(handlerLogin(req, res)).catch(next);
+});
 // Get all borrowers
 app.get("/api/borrowers", (req, res, next) => {
   Promise.resolve(handlerBorrowersList(req, res)).catch(next);
@@ -90,7 +95,6 @@ app.post("/api/borrowers", createBorrowerLimiter, (req, res, next) => {
 app.patch("/api/borrowers/:id", (req, res, next) => {
   Promise.resolve(handlerBorrowersUpdate(req, res)).catch(next);
 });
-
 // Delete a borrower
 app.delete("/api/borrowers/:id", (req, res, next) => {
   Promise.resolve(handlerBorrowersDelete(req, res)).catch(next);
