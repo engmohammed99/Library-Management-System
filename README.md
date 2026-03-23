@@ -241,11 +241,6 @@ The database is built using PostgreSQL and interacts via Drizzle ORM. Below is a
   ```json
   {
     "bookId": "uuid-of-book"
-    // If you do NOT supply `borrowerId`, provide a valid Bearer JWT
-    // in the `Authorization` header; the server will extract the
-    // authenticated borrower ID from the token.
-    // Alternatively you can supply an explicit borrowerId:
-    // "borrowerId": "uuid-of-borrower"
   }
   ```
 - **Expected Output** (201 Created):
