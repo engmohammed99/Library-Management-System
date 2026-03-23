@@ -148,6 +148,46 @@ The database is built using PostgreSQL and interacts via Drizzle ORM. Below is a
 
 ---
 
+### **Authentication**
+
+#### Login (issue JWT)
+
+- **Endpoint**: `POST /api/login`
+- **Expected Input** (JSON):
+  ```json
+  {
+    "email": "john.doe@example.com",
+    "password": "Password123!"
+  }
+  ```
+- **Expected Output** (200 OK): Returns borrower info plus an access token.
+
+  ```json
+  {
+    "id": "uuid",
+    "name": "John Doe",
+    "email": "john.doe@example.com",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z",
+    "token": "<JWT_TOKEN_STRING>"
+  }
+  ```
+
+- **Usage**: Use the returned token in the `Authorization` header for
+  authenticated endpoints:
+
+  ```text
+  Authorization: Bearer <JWT_TOKEN_STRING>
+  ```
+
+  Example curl to login and extract token:
+
+  ```bash
+  curl -s -X POST http://localhost:8080/api/login \
+    -H "Content-Type: application/json" \
+    -d '{"email":"test@example.com","password":"Password123!"}'
+  ```
+
 ### **Borrowers Endpoints**
 
 #### 1. Create a Borrower
@@ -157,7 +197,8 @@ The database is built using PostgreSQL and interacts via Drizzle ORM. Below is a
   ```json
   {
     "name": "John Doe",
-    "email": "john.doe@example.com"
+    "email": "john.doe@example.com",
+    "password": "Password123!"
   }
   ```
 - **Expected Output** (201 Created):
@@ -199,11 +240,16 @@ The database is built using PostgreSQL and interacts via Drizzle ORM. Below is a
 - **Expected Input** (JSON):
   ```json
   {
-    "bookId": "uuid-of-book",
-    "borrowerId": "uuid-of-borrower"
+    "bookId": "uuid-of-book"
+    // If you do NOT supply `borrowerId`, provide a valid Bearer JWT
+    // in the `Authorization` header; the server will extract the
+    // authenticated borrower ID from the token.
+    // Alternatively you can supply an explicit borrowerId:
+    // "borrowerId": "uuid-of-borrower"
   }
   ```
 - **Expected Output** (201 Created):
+
   ```json
   {
     "success": true,
@@ -211,7 +257,21 @@ The database is built using PostgreSQL and interacts via Drizzle ORM. Below is a
     "data": { ...borrowing_record... }
   }
   ```
+
   _(Throws 400 if book is out of stock)._
+
+- **Authentication**: To authenticate as a borrower, include the header:
+  `Authorization: Bearer <TOKEN>` where `<TOKEN>` is the JWT returned by
+  the login endpoint (see below).
+
+- **Example (using token)**:
+
+  ```bash
+  curl -X POST http://localhost:8080/api/borrowings/checkout \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer <TOKEN>" \
+    -d '{"bookId":"<BOOK_UUID>"}'
+  ```
 
 #### 2. Return a Book
 
@@ -238,7 +298,6 @@ The database is built using PostgreSQL and interacts via Drizzle ORM. Below is a
 ---
 
 ### **📊 Analytics & CSV Reports Endpoints**
-
 
 #### 1. Get Borrowing Analytics (JSON)
 
@@ -268,8 +327,6 @@ The database is built using PostgreSQL and interacts via Drizzle ORM. Below is a
 - **Rate Limiting**: To prevent abuse, Native In-Memory Rate Limiters are active:
   - Account Creation (`POST /api/borrowers`): 5 per 15 minutes.
   - Checkout (`POST /api/borrowings/checkout`): 10 per minute.
-  
-
 
 ---
 
